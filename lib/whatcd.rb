@@ -35,6 +35,16 @@ class WhatCD
       headers.has_key? 'Cookie'
     end
 
+    # Public: Gets a Rippy quote.
+    #
+    # Returns a String.
+    def rippy
+      result = get '/ajax.php', query: { action: 'rippy', format: 'json' }
+      result['rippy']
+    end
+
+    alias_method :Rippy, :rippy
+
     # Internal: Makes a request.
     #
     # action - An action name String.
@@ -53,7 +63,7 @@ class WhatCD
       end
     end
 
-    # Public: Make a request. The "method" name (capitalized!) is one of the
+    # Public: Makes a request. The "method" name (capitalized!) is one of the
     # API actions (ajax.php?action=<this-bit>).
     #
     # query - A query Hash.
@@ -72,6 +82,12 @@ class WhatCD
       else
         super
       end
+    end
+
+    # Public: Makes a request. See method_missing for usage. Only defined for
+    # actions without parameters (e.g. Rippy).
+    def const_missing(constant)
+      constant == :Rippy ? rippy : super
     end
   end
 

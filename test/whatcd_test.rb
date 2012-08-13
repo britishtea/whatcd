@@ -15,9 +15,10 @@ context WhatCD do
 		asserts('is authenticated') { topic::authenticated? }
 		asserts('can make requests') { topic::User(id: 28747) }.kind_of Hash
 		asserts('raises exceptions') { topic::Gibberish }.raises NameError
+		asserts('supports rippy') { topic::Rippy }.kind_of String
 	end
 
 	context 'Incorrect credentials' do
-		asserts { WhatCD::authenticate '.', '..' }.raises WhatCD::AuthError
+		asserts('raises AuthError') { WhatCD::authenticate '.', '..' }.raises WhatCD::AuthError
 	end
 end
