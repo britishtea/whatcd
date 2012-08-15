@@ -1,6 +1,16 @@
 require 'httparty'
 
 # Public: An API wrapper for What.cd's JSON API.
+#
+# Examples
+# 
+#   WhatCD::authenticate 'username', 'password'
+#   
+#   WhatCD::User :id => 666
+#   => { ... }
+#   
+#   WhatCD::Browse :searchstr => 'The Flaming Lips'
+#   => { ... }
 class WhatCD
   include HTTParty
 
@@ -15,14 +25,17 @@ class WhatCD
     # username - The username String.
     # password - The password String.
     #
-    # Raises an AuthError.
+    # Returns a HTTParty::CookieHash. Raises an AuthError.
     def authenticate(username, password)
       body     = { username: username, password: password }
       response = post '/login.php', body: body, 
                  follow_redirects: false
 
       if response.headers.has_key? 'set-cookie'
-        headers 'Cookie' => response.headers['set-cookie']
+        cookie_jar = HTTParty::CookieHash.new
+        cookie_jar.add_cookies response.headers['set-cookie']
+
+        cookies cookie_jar
       else
         raise AuthError
       end
@@ -32,25 +45,33 @@ class WhatCD
     #
     # Returns a Boolean.
     def authenticated?
-      headers.has_key? 'Cookie'
+      cookies.has_key? :session
     end
 
     # Public: Gets a Rippy quote.
     #
-    # Returns a String.
-    def rippy
-      result = get '/ajax.php', query: { action: 'rippy', format: 'json' }
-      result['rippy']
-    end
+    # json - A Boolean indicating wether or not the return value should be
+    #        JSON (default: false).
+    #
+    # Returns a String or Hash.
+    def rippy(json = false)
+      raise AuthError unless authenticated?
 
-    alias_method :Rippy, :rippy
+      result = get '/ajax.php', query: { action: 'rippy', format: 'json' }
+      
+      if result.code != 200 || result['status'] == 'failure'
+        raise(APIError)
+      else
+        json ? result : result['rippy']
+      end
+    end
 
     # Internal: Makes a request.
     #
     # action - An action name String.
     # query  - A query Hash to send along (default: {}).
     #
-    # Returns a Hash representing JSON. Raises an APIError.
+    # Returns a Hash representing JSON. Raises an AuthError or APIError.
     def make_request(action, query = {})
       raise AuthError unless authenticated?
 
@@ -68,14 +89,16 @@ class WhatCD
     #
     # query - A query Hash.
     #
+    # Returns a Hash. Raises an AuthError or APIError.
+    #
     # Examples
     # 
-    #   WhatCD::User id => 666
+    #   WhatCD::User :id => 666
     #   # => <Hash ...>
     #
     # Signature
     # 
-    #   Method(query)
+    #   Action(query)
     def method_missing(method, *args, &block)
       if method.to_s == method.to_s.capitalize
         make_request method.to_s.downcase, args.first
@@ -84,8 +107,9 @@ class WhatCD
       end
     end
 
-    # Public: Makes a request. See method_missing for usage. Only defined for
-    # actions without parameters (e.g. Rippy).
+    # Public: Makes a request without a query. See method_missing for usage.
+    #
+    # Returns a String or Hash. Raises an AuthError or APIError.
     def const_missing(constant)
       constant == :Rippy ? rippy : super
     end
