@@ -27,7 +27,7 @@ class WhatCD
     #
     # Returns a HTTParty::CookieHash. Raises an AuthError.
     def authenticate(username, password)
-      body     = { username: username, password: password }
+      body     = { username: username, password: password, keeplogged: 1 }
       response = post '/login.php', body: body, 
                  follow_redirects: false
 
