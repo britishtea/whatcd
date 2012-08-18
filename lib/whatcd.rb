@@ -48,42 +48,6 @@ class WhatCD
       cookies.has_key? :session
     end
 
-    # Public: Gets a Rippy quote.
-    #
-    # json - A Boolean indicating wether or not the return value should be
-    #        JSON (default: false).
-    #
-    # Returns a String or Hash.
-    def rippy(json = false)
-      raise AuthError unless authenticated?
-
-      result = get '/ajax.php', query: { action: 'rippy', format: 'json' }
-      
-      if result.code != 200 || result['status'] == 'failure'
-        raise(APIError)
-      else
-        json ? result : result['rippy']
-      end
-    end
-
-    # Internal: Makes a request.
-    #
-    # action - An action name String.
-    # query  - A query Hash to send along (default: {}).
-    #
-    # Returns a Hash representing JSON. Raises an AuthError or APIError.
-    def make_request(action, query = {})
-      raise AuthError unless authenticated?
-
-      result = get '/ajax.php', query: query.merge(action: action)
-
-      if result.code != 200 || result['status'] == 'failure'
-        raise(APIError)
-      else
-        result['response']
-      end
-    end
-
     # Public: Makes a request. The "method" name (capitalized!) is one of the
     # API actions (ajax.php?action=<this-bit>).
     #
@@ -111,7 +75,46 @@ class WhatCD
     #
     # Returns a String or Hash. Raises an AuthError or APIError.
     def const_missing(constant)
-      constant == :Rippy ? rippy : super
+      # Rippy's response differs from the other respones.
+      constant == :Rippy ? rippy : make_request(constant.to_s.downcase)
+    end
+
+  private
+
+    # Internal: Makes a request.
+    #
+    # action - An action name String.
+    # query  - A query Hash to send along (default: {}).
+    #
+    # Returns a Hash representing JSON. Raises an AuthError or APIError.
+    def make_request(action, query = {})
+      raise AuthError unless authenticated?
+
+      result = get '/ajax.php', query: query.merge(action: action)
+
+      if result.code != 200 || result['status'] == 'failure'
+        raise APIError
+      else
+        result['response']
+      end
+    end
+
+    # Internal: Gets a Rippy quote.
+    #
+    # json - A Boolean indicating wether or not the return value should be
+    #        JSON (default: false).
+    #
+    # Returns a String or Hash.
+    def rippy(json = false)
+      raise AuthError unless authenticated?
+
+      result = get '/ajax.php', query: { action: 'rippy', format: 'json' }
+      
+      if result.code != 200 || result['status'] == 'failure'
+        raise(APIError)
+      else
+        json ? result : result['rippy']
+      end
     end
   end
 
