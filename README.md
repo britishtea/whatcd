@@ -4,20 +4,32 @@
 
 # Usage
 
+First, authentication:
+
 ```ruby
 require 'whatcd'
 
 # Authentication
 WhatCD::authenticate 'username', 'password'
 
+# Or, alternatively, make clever use of HTTParty's features
+WhatCD::cookies File.open('/tmp/cookie_file, 'rb').read
+```
+
+Once you're authenticated, you can start using the gem. It's fairly straigh-forward. It works as follows: `WhatCD::Action parameters_hash`. `Action` is one of the actions described in the API documentation (the xxx part in `\ajax.php?action=xxx`). **Make sure to capitalize this**. The `parameters_hash` is a regular hash, with `Symbol`s as keys. It represents the arguments.
+
+```ruby
 WhatCD::User :id => 666
 # => { ... }
 
 WhatCD::Browse :searchstr => 'The Flaming Lips'
 # => { ... }
+
+WhatCD::Rippy
+# => Rippy is best viewed in Microsoft Internet Explorer 6.0
 ```
 
-More documentation: http://rdoc.info/github/britishtea/whatcd
+More documentation: http://rdoc.info/github/britishtea/whatcd.
 
 # Installation
 
