@@ -14,7 +14,7 @@ require 'httparty'
 class WhatCD
   include HTTParty
 
-  base_uri 'what.cd'
+  base_uri 'https://what.cd'
   maintain_method_across_redirects
   format :json
 
