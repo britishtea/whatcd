@@ -1,2 +1,2 @@
---plugin tomdoc
+--plugin yard-tomdoc
 lib
