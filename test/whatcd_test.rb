@@ -1,27 +1,34 @@
-require 'riot'
-require 'whatcd'
+require_relative "test_helper"
 
-username = ENV['WHATCD_USERNAME']
-password = ENV['WHATCD_PASSWORD']
+test "with correct credentials" do
+	client = WhatCD::Client.new ENV["WHATCD_USERNAME"], ENV["WHATCD_PASSWORD"]
+	assert client.authenticated?
+	
+	# Fetching existing resources
+	assert_equal client.fetch(:user, :id => 28747).class, Hash
 
-context WhatCD do 
-	setup { WhatCD }
+	# Fetching non-existing resources
+	assert_raise(WhatCD::APIError) { client.fetch(:bogus, :id => 28747) }
+end
 
-	asserts('includes HTTParty methods') { topic }.kind_of? HTTParty
+test "with incorrect credentials" do
+	assert_raise(WhatCD::AuthError) { WhatCD::Client.new "", "" }
 
-	context 'Correct credentials' do
-		hookup { topic::authenticate username, password }
+	client = WhatCD::Client.new
+	assert (not client.authenticated?)
 
-		asserts('is authenticated') { topic::authenticated? }
-		asserts('requests with parameters') {  topic::User(id: 28747) }.kind_of Hash
-		asserts('requests without paramters') { topic::Index }.kind_of Hash
-		asserts('raises exceptions') { topic::Xxx }.raises WhatCD::APIError
-	end
+	# Fetching existing resources
+	assert_raise(WhatCD::AuthError) { client.fetch(:user, :id => 28747) }
 
-	context 'Incorrect credentials' do
-		hookup { topic::cookies {} }
-		
-		asserts('raises AuthError') { topic::authenticate '.', '..' }.raises WhatCD::AuthError
-		asserts('raises AuthError') { topic::User(id: 28747) }.raises WhatCD::AuthError
-	end
+	# Fetching non-existing resources
+	assert_raise(WhatCD::AuthError) { client.fetch(:bogus, :id => 28747) }
+end
+
+test "with a cookie" do
+	client = WhatCD::Client.new
+	assert (not client.authenticated?)
+
+	client.set_cookie ENV["WHATCD_COOKIE"]
+
+	assert_equal client.fetch(:user, :id => 28747).class, Hash
 end

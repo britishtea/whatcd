@@ -1,127 +1,88 @@
-require 'httparty'
+require "faraday"
+require "faraday-cookie_jar"
+require "json"
 
 # Public: An API wrapper for What.cd's JSON API.
 #
 # Examples
 # 
-#   WhatCD::authenticate 'username', 'password'
+#   client = WhatCD::Client.new 'username', 'password'
 #   
-#   WhatCD::User :id => 666
+#   client.fetch :user, :id => 666
 #   => { ... }
 #   
-#   WhatCD::Browse :searchstr => 'The Flaming Lips'
+#   client.fetch :browse, :searchstr => 'The Flaming Lips'
 #   => { ... }
 class WhatCD
-  include HTTParty
+  AuthError = Class.new StandardError
+  APIError  = Class.new StandardError
 
-  base_uri 'https://what.cd'
-  maintain_method_across_redirects
-  format :json
+  class Client
+    attr_reader :connection
 
-  class << self
-    # Public: Authenticates with the API. Keep in mind that you only have six
-    # tries!
-    #
-    # username - The username String.
-    # password - The password String.
-    #
-    # Returns a HTTParty::CookieHash. Raises an AuthError.
+    def initialize(username = nil, password = nil)
+      @connection = Faraday.new(:url => "https://what.cd") do |builder|
+        builder.request :url_encoded
+        builder.use :cookie_jar
+        builder.adapter Faraday.default_adapter
+      end
+
+      unless username.nil? || password.nil?
+        authenticate username, password 
+      end
+    end
+
     def authenticate(username, password)
-      body     = { username: username, password: password, keeplogged: 1 }
-      response = post '/login.php', body: body, 
-                 follow_redirects: false
+      body = { :username => username, :password => password, :keeplogged => 1 }
+      res  = connection.post "/login.php", body
 
-      if response.headers.has_key? 'set-cookie'
-        cookie_jar = HTTParty::CookieHash.new
-        cookie_jar.add_cookies response.headers['set-cookie']
-
-        cookies cookie_jar
-      else
+      unless res["set-cookie"] && res["location"] == "index.php"
         raise AuthError
       end
+
+      @authenticated = true
     end
 
-    # Public: Checks if there's properly authenticated.
-    #
-    # Returns a Boolean.
+    def set_cookie(cookie)
+      connection.headers["Cookie"] = cookie
+      @authenticated = true
+    end
+
     def authenticated?
-      cookies.has_key? :session
+      @authenticated
     end
 
-    # Public: Makes a request. The "method" name (capitalized!) is one of the
-    # API actions (ajax.php?action=<this-bit>).
+    # Public: Fetches a resource. For all possible resources and parameters see
+    # https://github.com/WhatCD/Gazelle/wiki/JSON-API-Documentation.
     #
-    # query - A query Hash.
+    # resource   - A resource name Symbol (ajax.php?action=<this part>).
+    # parameters - A Hash.
     #
-    # Returns a Hash. Raises an AuthError or APIError.
-    #
-    # Examples
-    # 
-    #   WhatCD::User :id => 666
-    #   # => <Hash ...>
-    #
-    # Signature
-    # 
-    #   Action(query)
-    def method_missing(method, *args, &block)
-      if method.to_s == method.to_s.capitalize
-        make_request method.to_s.downcase, args.first
-      else
-        super
+    # Returns a Hash.
+    # Raises AuthError when not authenticated yet.
+    # Raises AuthError when redirected to /login.php.
+    # Raises APIError when a HTTP error occurs.
+    # Raises APIError when the response body is `{"status": "failure"}`.
+    def fetch(resource, parameters = {})
+      unless authenticated?
+        raise AuthError
       end
-    end
 
-    # Public: Makes a request without a query. See method_missing for usage.
-    #
-    # Returns a String or Hash. Raises an AuthError or APIError.
-    def const_missing(constant)
-      # Rippy's response differs from the other respones.
-      constant == :Rippy ? rippy : make_request(constant.to_s.downcase)
-    end
+      res = connection.get "ajax.php", parameters.merge(:action => resource)
 
-  private
+      if res.status == "302" && res["location"] == "login.php"
+        raise AuthError
+      elsif !res.success?
+        raise APIError, res.status
+      end
 
-    # Internal: Makes a request.
-    #
-    # action - An action name String.
-    # query  - A query Hash to send along (default: {}).
-    #
-    # Returns a Hash representing JSON. Raises an AuthError or APIError.
-    def make_request(action, query = {})
-      raise AuthError unless authenticated?
+      parsed_res = JSON.parse res.body
 
-      result = get '/ajax.php', query: query.merge(action: action)
-
-      if result.code != 200 || result['status'] == 'failure'
+      if parsed_res["status"] == "failure"
         raise APIError
-      else
-        result['response']
       end
-    end
 
-    # Internal: Gets a Rippy quote.
-    #
-    # json - A Boolean indicating wether or not the return value should be
-    #        JSON (default: false).
-    #
-    # Returns a String or Hash.
-    def rippy(json = false)
-      raise AuthError unless authenticated?
-
-      result = get '/ajax.php', query: { action: 'rippy', format: 'json' }
-      
-      if result.code != 200 || result['status'] == 'failure'
-        raise(APIError)
-      else
-        json ? result : result['rippy']
-      end
+      parsed_res["response"]
     end
   end
-
-  # Internal: Gets raised whenever failure occured. Error messages will be
-  # vague, as What.cd's API doesn't give any reasons for failure.
-  class APIError < Exception; end
-
-  # Internal: Gets raised when a request is made without authenticating first.
-  class AuthError < Exception; end
 end

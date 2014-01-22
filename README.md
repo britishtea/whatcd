@@ -7,51 +7,30 @@
 First, authentication:
 
 ```ruby
-require 'whatcd'
+require "whatcd"
 
-# Authentication
-WhatCD::authenticate 'username', 'password'
+client = WhatCD::Client.new "username", "password"
 
-# Or, alternatively, make clever use of HTTParty's features
-WhatCD::cookies File.open('/tmp/cookie_file', 'rb').read
+client.fetch :user, :id => 28747
+# => { "username" => "empeedrie", ... }
 ```
 
-Once you're authenticated, you can start using the gem. It's fairly straigh-forward. It works as follows:
-
-```ruby
-WhatCD::Action parameters_hash
-```
-
-`Action` is one of the actions described in the API documentation (the xxx part in `\ajax.php?action=xxx`). **Make sure to capitalize this**.
-
-The `parameters_hash` is a regular hash, with **Symbol**s as keys. It represents the arguments.
-
-```ruby
-WhatCD::User :id => 666
-# => { ... }
-
-WhatCD::Browse :searchstr => 'The Flaming Lips'
-# => { ... }
-
-WhatCD::Rippy
-# => Rippy is best viewed in Microsoft Internet Explorer 6.0
-```
-
-More documentation: http://rdoc.info/github/britishtea/whatcd.
+Documentation: http://rdoc.info/github/britishtea/whatcd.
 
 # Installation
 
-Just type `gem install whatcd` in your terminal. Or, when using Bundler:
-
-```ruby
-gem 'whatcd', :git => 'git://github.com/britishtea/whatcd.git'
-```
+`gem install whatcd`
 
 # Changelog
 
-## 0.1.0
-
-- Initial stable version
+- **0.2.0**: Full rewrite that works with Cloudflare.
+- **0.1.5**: Access API over SSL only.
+- **0.1.4**: Fix a bug that occured when requesting resources without 
+parameters.
+- **0.1.3**: Fix a bug that extends the validity of cookies.
+- **0.1.2**: General maintenance.
+- **0.1.1**: Introduce support for rippy.
+- **0.1.0**: Initial version.
 
 # License - MIT License
 
