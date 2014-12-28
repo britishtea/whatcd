@@ -3,7 +3,6 @@ require 'rake/testtask'
 
 desc "Run all tests"
 task :test do
-  
   unless ENV.has_key? 'WHATCD_USERNAME'
   	print 'Username: '
   	ENV['WHATCD_USERNAME'] = STDIN.gets.chomp
