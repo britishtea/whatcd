@@ -70,7 +70,7 @@ class WhatCD
 
       res = connection.get "ajax.php", parameters.merge(:action => resource)
 
-      if res.status == "302" && res["location"] == "login.php"
+      if res.status == 302 && res["location"] == "login.php"
         raise AuthError
       elsif !res.success?
         raise APIError, res.status
