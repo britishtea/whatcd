@@ -2,15 +2,15 @@ require "faraday"
 require "faraday-cookie_jar"
 require "json"
 
-# Public: An API wrapper for What.cd's JSON API.
+# Public: An API wrapper for Gazelle tracker's JSON API.
 #
 # Examples
-# 
+#
 #   client = WhatCD::Client.new 'username', 'password'
-#   
+#
 #   client.fetch :user, :id => 666
 #   => { ... }
-#   
+#
 #   client.fetch :browse, :searchstr => 'The Flaming Lips'
 #   => { ... }
 class WhatCD
@@ -20,15 +20,15 @@ class WhatCD
   class Client
     attr_reader :connection
 
-    def initialize(username = nil, password = nil)
-      @connection = Faraday.new(:url => "https://what.cd") do |builder|
+    def initialize(username = nil, password = nil, host = 'what.cd')
+      @connection = Faraday.new(:url => "https://#{host}") do |builder|
         builder.request :url_encoded
         builder.use :cookie_jar
         builder.adapter Faraday.default_adapter
       end
 
       unless username.nil? || password.nil?
-        authenticate username, password 
+        authenticate username, password
       end
     end
 
