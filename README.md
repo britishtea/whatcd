@@ -13,7 +13,7 @@ client = WhatCD::Client.new "username", "password"
 
 # or
 client = WhatCD::Client.new
-client.set_cookie "cookie value" 
+client.set_cookie "cookie value"
 
 client.fetch :user, :id => 28747
 # => { "username" => "empeedrie", ... }
@@ -28,9 +28,10 @@ What.CD API documentation: https://github.com/WhatCD/Gazelle/wiki/JSON-API-Docum
 
 # Changelog
 
+- **0.3.0**: Make host configurable.
 - **0.2.0**: Full rewrite that works with Cloudflare.
 - **0.1.5**: Access API over SSL only.
-- **0.1.4**: Fix a bug that occured when requesting resources without 
+- **0.1.4**: Fix a bug that occured when requesting resources without
 parameters.
 - **0.1.3**: Fix a bug that extends the validity of cookies.
 - **0.1.2**: General maintenance.
